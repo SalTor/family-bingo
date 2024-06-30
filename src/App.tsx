@@ -62,8 +62,13 @@ type GameBoardProps = {
 function GameBoard(props: GameBoardProps) {
   const [board] = useState(generateBoard());
   useEffect(() => {
-    console.info("GAME", props.game);
-  }, [props.game]);
+    const isWinner = getIsWinningBoard({ game: props.game, board });
+    if (isWinner) {
+      console.info("winner");
+    } else {
+      console.info("not yet a winner");
+    }
+  }, [props.game, board]);
 
   return (
     <div className="flex gap-2">
@@ -123,4 +128,71 @@ function generateBoard() {
   });
 
   return result;
+}
+
+type GetIsWinningBoardArgs = {
+  game: Game;
+  board: Array<Array<number>>;
+};
+function getIsWinningBoard(args: GetIsWinningBoardArgs) {
+  return checkColumns() || checkRows() || checkDiagonals();
+
+  function checkColumns() {
+    const { board, game } = args;
+
+    const col_counts: Record<number, number> = {};
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board[i].length; j++) {
+        const value = board[i][j];
+        if (game.rolledNumbers.has(value)) {
+          col_counts[i] = (col_counts[i] || 0) + 1;
+        } else {
+          col_counts[i] = col_counts[i] || 0;
+        }
+      }
+    }
+    return Object.values(col_counts).some((v) => v === board.length);
+  }
+
+  function checkRows() {
+    const { board, game } = args;
+
+    const row_counts: Record<number, number> = {};
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board[i].length; j++) {
+        const value = board[j][i];
+        if (game.rolledNumbers.has(value)) {
+          row_counts[i] = (row_counts[i] || 0) + 1;
+        } else {
+          row_counts[i] = row_counts[i] || 0;
+        }
+      }
+    }
+    return Object.values(row_counts).some((v) => v === board.length);
+  }
+
+  function checkDiagonals() {
+    const { board, game } = args;
+
+    let left_right_count = 0;
+
+    for (let i = 0; i < board.length; i++) {
+      const LRV = board[i][i];
+      if (game.rolledNumbers.has(LRV)) {
+        left_right_count += 1;
+      }
+    }
+
+    let right_left_count = 0;
+    for (let i = 0; i < board.length; i++) {
+      const RLV = board[board.length - 1 - i][i];
+      if (game.rolledNumbers.has(RLV)) {
+        right_left_count += 1;
+      }
+    }
+
+    return (
+      left_right_count === board.length || right_left_count === board.length
+    );
+  }
 }
