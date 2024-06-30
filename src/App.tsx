@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import cn from "classnames";
 
 class Game {
   rolledNumbers: Array<number>;
@@ -71,6 +72,23 @@ const COL_ROWS = Array(5)
   .fill(null)
   .map((_, index) => index);
 
+function getColumnLetter(args: { index: number }) {
+  switch (args.index) {
+    case 0:
+      return "B";
+    case 1:
+      return "I";
+    case 2:
+      return "N";
+    case 3:
+      return "G";
+    case 4:
+      return "O";
+    default:
+      return null;
+  }
+}
+
 function GameBoard(props: { rolledNumbers: Game["rolledNumbers"] }) {
   const [board] = useState(generateBoard());
 
@@ -87,20 +105,33 @@ function GameBoard(props: { rolledNumbers: Game["rolledNumbers"] }) {
   }, [props.rolledNumbers, board]);
 
   return (
-    <div className="flex gap-2">
+    <div className="flex">
       {COL_ROWS.map((column) => (
-        <div key={`col-${column}`} className="flex flex-col gap-2">
+        <div
+          key={`col-${column}`}
+          className="flex flex-col border border-x-0 border-y-0 border-solid border-black"
+        >
+          <div className="w-10 h-10 flex justify-center items-center">
+            {getColumnLetter({ index: column })}
+          </div>
           {COL_ROWS.map((row) => {
             const value = board[column][row];
             const isActivated = getHasRolled(value, props.rolledNumbers);
             return (
               <div
                 key={`cell-${row}`}
-                className={`w-10 h-10 border-black border border-solid flex justify-center items-center ${
-                  isActivated ? "bg-black" : ""
-                }`}
+                className={cn(
+                  "relative w-10 h-10 border-black border border-solid flex justify-center items-center",
+                  {
+                    "border-r-0": column !== COL_ROWS.length - 1,
+                    "border-b-0": row !== COL_ROWS.length - 1,
+                  },
+                )}
               >
                 {value}
+                {isActivated && (
+                  <div className="h-[90%] w-[90%] absolute rounded-[50%] bg-red-400/50" />
+                )}
               </div>
             );
           })}
