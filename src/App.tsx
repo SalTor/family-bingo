@@ -17,23 +17,36 @@ function App() {
         Roll a number!
       </button>
 
-      {/*<RolledNumbers game={game} />*/}
+      <div className="flex gap-10">
+        <GameBoard game={game} />
 
-      <GameBoard game={game} />
+        <RolledNumbers game={game} />
+      </div>
     </div>
   );
 }
 
 export default App;
 
+function RolledNumbers(props: { game: Game }) {
+  return (
+    <div>
+      <h2>Rolled numbers</h2>
+      {[...props.game.rolledNumbers].reverse().map((roll) => (
+        <p key={roll}>{roll}</p>
+      ))}
+    </div>
+  );
+}
+
 class Game {
-  rolledNumbers: Set<number>;
+  rolledNumbers: Array<number>;
 
   constructor(game?: Game) {
     if (game) {
       this.rolledNumbers = game.rolledNumbers;
     } else {
-      this.rolledNumbers = new Set();
+      this.rolledNumbers = [];
     }
   }
 
@@ -42,13 +55,17 @@ class Game {
 
     do {
       value = getNumInRange(1, 75);
-    } while (this.rolledNumbers.has(value));
+    } while (this.getHasRolled(value));
 
-    this.rolledNumbers.add(value);
+    this.rolledNumbers.push(value);
 
     console.info("rolled", { value, rolledSoFar: this.rolledNumbers });
 
     return value;
+  }
+
+  getHasRolled(num: number) {
+    return new Set(this.rolledNumbers).has(num);
   }
 }
 
@@ -61,6 +78,7 @@ type GameBoardProps = {
 };
 function GameBoard(props: GameBoardProps) {
   const [board] = useState(generateBoard());
+
   useEffect(() => {
     const isWinner = getIsWinningBoard({ game: props.game, board });
     if (isWinner) {
@@ -76,13 +94,13 @@ function GameBoard(props: GameBoardProps) {
         <div key={`col-${column}`} className="flex flex-col gap-2">
           {COL_ROWS.map((row) => {
             const value = board[column][row];
-            const isActivated = props.game.rolledNumbers.has(value)
-              ? "bg-black"
-              : "";
+            const isActivated = props.game.getHasRolled(value);
             return (
               <div
                 key={`cell-${row}`}
-                className={`w-10 h-10 border-black border border-solid flex justify-center items-center ${isActivated}`}
+                className={`w-10 h-10 border-black border border-solid flex justify-center items-center ${
+                  isActivated ? "bg-black" : ""
+                }`}
               >
                 {value}
               </div>
@@ -144,7 +162,7 @@ function getIsWinningBoard(args: GetIsWinningBoardArgs) {
     for (let i = 0; i < board.length; i++) {
       for (let j = 0; j < board[i].length; j++) {
         const value = board[i][j];
-        if (game.rolledNumbers.has(value)) {
+        if (game.getHasRolled(value)) {
           col_counts[i] = (col_counts[i] || 0) + 1;
         } else {
           col_counts[i] = col_counts[i] || 0;
@@ -161,7 +179,7 @@ function getIsWinningBoard(args: GetIsWinningBoardArgs) {
     for (let i = 0; i < board.length; i++) {
       for (let j = 0; j < board[i].length; j++) {
         const value = board[j][i];
-        if (game.rolledNumbers.has(value)) {
+        if (game.getHasRolled(value)) {
           row_counts[i] = (row_counts[i] || 0) + 1;
         } else {
           row_counts[i] = row_counts[i] || 0;
@@ -178,7 +196,7 @@ function getIsWinningBoard(args: GetIsWinningBoardArgs) {
 
     for (let i = 0; i < board.length; i++) {
       const LRV = board[i][i];
-      if (game.rolledNumbers.has(LRV)) {
+      if (game.getHasRolled(LRV)) {
         left_right_count += 1;
       }
     }
@@ -186,7 +204,7 @@ function getIsWinningBoard(args: GetIsWinningBoardArgs) {
     let right_left_count = 0;
     for (let i = 0; i < board.length; i++) {
       const RLV = board[board.length - 1 - i][i];
-      if (game.rolledNumbers.has(RLV)) {
+      if (game.getHasRolled(RLV)) {
         right_left_count += 1;
       }
     }
