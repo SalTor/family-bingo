@@ -62,7 +62,10 @@ function RolledNumbers(props: { values: Game["rolledNumbers"] }) {
     <div>
       <h2>Rolled numbers</h2>
       {[...props.values].reverse().map((roll) => (
-        <p key={roll}>{roll}</p>
+        <p key={roll}>
+          {getValueLetter({ value: roll })}
+          {roll}
+        </p>
       ))}
     </div>
   );
@@ -72,21 +75,40 @@ const COL_ROWS = Array(5)
   .fill(null)
   .map((_, index) => index);
 
-function getColumnLetter(args: { index: number }) {
-  switch (args.index) {
-    case 0:
+function getColumnLetter(args: { index: number | string }) {
+  switch (args.index.toString()) {
+    case "0":
       return "B";
-    case 1:
+    case "1":
       return "I";
-    case 2:
+    case "2":
       return "N";
-    case 3:
+    case "3":
       return "G";
-    case 4:
+    case "4":
       return "O";
     default:
       return null;
   }
+}
+
+const ranges: Record<number, Array<number>> = {
+  0: [1, 15],
+  1: [16, 30],
+  2: [31, 45],
+  3: [46, 60],
+  4: [61, 75],
+};
+
+function getValueLetter(args: { value: number }) {
+  const match = Object.entries(ranges).find(([, range]) => {
+    const [min, max] = range;
+    return args.value >= min && args.value <= max;
+  });
+  if (match) {
+    return getColumnLetter({ index: match[0] });
+  }
+  return null;
 }
 
 function GameBoard(props: { rolledNumbers: Game["rolledNumbers"] }) {
@@ -153,13 +175,6 @@ function generateBoard() {
   const result = [...COL_ROWS].map(() => [...COL_ROWS]);
 
   const currentValues = new Set();
-  const ranges: Record<number, Array<number>> = {
-    0: [1, 15],
-    1: [16, 30],
-    2: [31, 45],
-    3: [46, 60],
-    4: [61, 75],
-  };
 
   COL_ROWS.forEach((_, i) => {
     COL_ROWS.forEach((_, j) => {
