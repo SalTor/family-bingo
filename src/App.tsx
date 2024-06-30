@@ -25,8 +25,12 @@ class Game {
     console.info("rolled", { value, rolledSoFar: this.rolledNumbers });
   }
 
-  getHasRolled(num: number) {
+  private getHasRolled(num: number) {
     return new Set(this.rolledNumbers).has(num);
+  }
+
+  reset() {
+    this.rolledNumbers = [];
   }
 }
 
@@ -39,14 +43,24 @@ export default function App() {
     <div className="font-sans p-4">
       <h1 className="text-3xl">Welcome to Family Bingo!</h1>
 
-      <button
-        onClick={() => {
-          game.roll();
-          setRolledNumbers([...game.rolledNumbers]);
-        }}
-      >
-        Roll a number!
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            game.roll();
+            setRolledNumbers([...game.rolledNumbers]);
+          }}
+        >
+          Roll a number!
+        </button>
+        <button
+          onClick={() => {
+            game.reset();
+            setRolledNumbers([...game.rolledNumbers]);
+          }}
+        >
+          Reset game
+        </button>
+      </div>
 
       <div className="flex gap-10">
         <GameBoard rolledNumbers={rolledNumbers} />
