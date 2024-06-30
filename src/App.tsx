@@ -1,44 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-function App() {
-  const [game, setGame] = useState(new Game());
-
-  return (
-    <div className="font-sans p-4">
-      <h1 className="text-3xl">Welcome to Family Bingo!</h1>
-
-      <button
-        onClick={() => {
-          game.roll();
-          setGame(new Game(game));
-        }}
-      >
-        Roll a number!
-      </button>
-
-      <div className="flex gap-10">
-        <GameBoard game={game} />
-
-        <RolledNumbers game={game} />
-      </div>
-    </div>
-  );
-}
-
-export default App;
-
-function RolledNumbers(props: { game: Game }) {
-  return (
-    <div>
-      <h2>Rolled numbers</h2>
-      {[...props.game.rolledNumbers].reverse().map((roll) => (
-        <p key={roll}>{roll}</p>
-      ))}
-    </div>
-  );
-}
-
 class Game {
   rolledNumbers: Array<number>;
 
@@ -60,8 +22,6 @@ class Game {
     this.rolledNumbers.push(value);
 
     console.info("rolled", { value, rolledSoFar: this.rolledNumbers });
-
-    return value;
   }
 
   getHasRolled(num: number) {
@@ -69,24 +29,62 @@ class Game {
   }
 }
 
+const game = new Game();
+
+export default function App() {
+  const [rolledNumbers, setRolledNumbers] = useState(game.rolledNumbers);
+
+  return (
+    <div className="font-sans p-4">
+      <h1 className="text-3xl">Welcome to Family Bingo!</h1>
+
+      <button
+        onClick={() => {
+          game.roll();
+          setRolledNumbers([...game.rolledNumbers]);
+        }}
+      >
+        Roll a number!
+      </button>
+
+      <div className="flex gap-10">
+        <GameBoard rolledNumbers={rolledNumbers} />
+
+        <RolledNumbers values={rolledNumbers} />
+      </div>
+    </div>
+  );
+}
+
+function RolledNumbers(props: { values: Game["rolledNumbers"] }) {
+  return (
+    <div>
+      <h2>Rolled numbers</h2>
+      {[...props.values].reverse().map((roll) => (
+        <p key={roll}>{roll}</p>
+      ))}
+    </div>
+  );
+}
+
 const COL_ROWS = Array(5)
   .fill(null)
   .map((_, index) => index);
 
-type GameBoardProps = {
-  game: Game;
-};
-function GameBoard(props: GameBoardProps) {
+function GameBoard(props: { rolledNumbers: Game["rolledNumbers"] }) {
   const [board] = useState(generateBoard());
 
   useEffect(() => {
-    const isWinner = getIsWinningBoard({ game: props.game, board });
+    const isWinner = getIsWinningBoard({
+      board,
+      rolledNumbers: props.rolledNumbers,
+    });
     if (isWinner) {
       console.info("winner");
     } else {
       console.info("not yet a winner");
     }
-  }, [props.game, board]);
+  }, [props.rolledNumbers, board]);
 
   return (
     <div className="flex gap-2">
@@ -94,7 +92,7 @@ function GameBoard(props: GameBoardProps) {
         <div key={`col-${column}`} className="flex flex-col gap-2">
           {COL_ROWS.map((row) => {
             const value = board[column][row];
-            const isActivated = props.game.getHasRolled(value);
+            const isActivated = getHasRolled(value, props.rolledNumbers);
             return (
               <div
                 key={`cell-${row}`}
@@ -110,6 +108,10 @@ function GameBoard(props: GameBoardProps) {
       ))}
     </div>
   );
+}
+
+function getHasRolled(value: number, rolledNumbers: Array<number>) {
+  return new Set(rolledNumbers).has(value);
 }
 
 function getNumInRange(min: number, max: number) {
@@ -149,20 +151,20 @@ function generateBoard() {
 }
 
 type GetIsWinningBoardArgs = {
-  game: Game;
   board: Array<Array<number>>;
+  rolledNumbers: Game["rolledNumbers"];
 };
 function getIsWinningBoard(args: GetIsWinningBoardArgs) {
+  const { board, rolledNumbers } = args;
+
   return checkColumns() || checkRows() || checkDiagonals();
 
   function checkColumns() {
-    const { board, game } = args;
-
     const col_counts: Record<number, number> = {};
     for (let i = 0; i < board.length; i++) {
       for (let j = 0; j < board[i].length; j++) {
         const value = board[i][j];
-        if (game.getHasRolled(value)) {
+        if (getHasRolled(value, rolledNumbers)) {
           col_counts[i] = (col_counts[i] || 0) + 1;
         } else {
           col_counts[i] = col_counts[i] || 0;
@@ -173,13 +175,11 @@ function getIsWinningBoard(args: GetIsWinningBoardArgs) {
   }
 
   function checkRows() {
-    const { board, game } = args;
-
     const row_counts: Record<number, number> = {};
     for (let i = 0; i < board.length; i++) {
       for (let j = 0; j < board[i].length; j++) {
         const value = board[j][i];
-        if (game.getHasRolled(value)) {
+        if (getHasRolled(value, rolledNumbers)) {
           row_counts[i] = (row_counts[i] || 0) + 1;
         } else {
           row_counts[i] = row_counts[i] || 0;
@@ -190,13 +190,11 @@ function getIsWinningBoard(args: GetIsWinningBoardArgs) {
   }
 
   function checkDiagonals() {
-    const { board, game } = args;
-
     let left_right_count = 0;
 
     for (let i = 0; i < board.length; i++) {
       const LRV = board[i][i];
-      if (game.getHasRolled(LRV)) {
+      if (getHasRolled(LRV, rolledNumbers)) {
         left_right_count += 1;
       }
     }
@@ -204,7 +202,7 @@ function getIsWinningBoard(args: GetIsWinningBoardArgs) {
     let right_left_count = 0;
     for (let i = 0; i < board.length; i++) {
       const RLV = board[board.length - 1 - i][i];
-      if (game.getHasRolled(RLV)) {
+      if (getHasRolled(RLV, rolledNumbers)) {
         right_left_count += 1;
       }
     }
