@@ -61,12 +61,17 @@ function RolledNumbers(props: { values: Game["rolledNumbers"] }) {
   return (
     <div>
       <h2>Rolled numbers</h2>
-      {[...props.values].reverse().map((roll) => (
-        <p key={roll}>
-          {getValueLetter({ value: roll })}
-          {roll}
-        </p>
-      ))}
+      <div className="relative max-h-[200px] overflow-y-scroll overflow-x-visible">
+        {[...props.values].reverse().map((roll, index) => (
+          <p
+            key={roll}
+            className={cn(index === 0 && "rounded-md bg-blue-200 font-bold")}
+          >
+            {getValueLetter({ value: roll })}
+            {roll}
+          </p>
+        ))}
+      </div>
     </div>
   );
 }
