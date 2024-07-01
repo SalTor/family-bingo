@@ -1,16 +1,35 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import "./App.css";
 import cn from "classnames";
+import { v4 } from "uuid";
+
+const COL_ROWS = Array(5)
+  .fill(null)
+  .map((_, index) => index);
+
+const ranges: Record<number, Array<number>> = {
+  0: [1, 15],
+  1: [16, 30],
+  2: [31, 45],
+  3: [46, 60],
+  4: [61, 75],
+};
 
 class Game {
   rolledNumbers: Array<number>;
+  boards: Array<{
+    id: string;
+    layout: number[][];
+  }>;
 
-  constructor(game?: Game) {
-    if (game) {
-      this.rolledNumbers = game.rolledNumbers;
-    } else {
-      this.rolledNumbers = [];
-    }
+  constructor() {
+    this.rolledNumbers = [];
+    this.boards = [
+      {
+        id: v4(),
+        layout: generateBoard(),
+      },
+    ];
   }
 
   roll() {
@@ -30,12 +49,32 @@ class Game {
   reset() {
     this.rolledNumbers = [];
   }
+
+  generateBoardsForPlayerCount(playerCount: number) {
+    const result: Game["boards"] = [];
+    for (let i = 0; i < playerCount; i++) {
+      let id: string;
+      do {
+        id = v4();
+      } while (new Set(this.boards.map((b) => b.id)).has(id));
+      result.push({
+        id,
+        layout: generateBoard(),
+      });
+    }
+    this.boards = result;
+  }
 }
 
 const game = new Game();
 
 export default function App() {
   const [rolledNumbers, setRolledNumbers] = useState(game.rolledNumbers);
+  const numberOfPlayers = 2;
+  const boards = useMemo(() => {
+    game.generateBoardsForPlayerCount(numberOfPlayers);
+    return game.boards;
+  }, [numberOfPlayers]);
 
   return (
     <div className="font-sans p-4">
@@ -61,7 +100,15 @@ export default function App() {
       </div>
 
       <div className="flex gap-10">
-        <GameBoard rolledNumbers={rolledNumbers} />
+        <div className="flex flex-col gap-5">
+          {boards.map((board) => (
+            <GameBoard
+              key={board.id}
+              board={board.layout}
+              rolledNumbers={rolledNumbers}
+            />
+          ))}
+        </div>
 
         <RolledNumbers values={rolledNumbers} />
       </div>
@@ -88,10 +135,6 @@ function RolledNumbers(props: { values: Game["rolledNumbers"] }) {
   );
 }
 
-const COL_ROWS = Array(5)
-  .fill(null)
-  .map((_, index) => index);
-
 function getColumnLetter(args: { index: number | string }) {
   switch (args.index.toString()) {
     case "0":
@@ -109,14 +152,6 @@ function getColumnLetter(args: { index: number | string }) {
   }
 }
 
-const ranges: Record<number, Array<number>> = {
-  0: [1, 15],
-  1: [16, 30],
-  2: [31, 45],
-  3: [46, 60],
-  4: [61, 75],
-};
-
 function getValueLetter(args: { value: number }) {
   const match = Object.entries(ranges).find(([, range]) => {
     const [min, max] = range;
@@ -128,17 +163,11 @@ function getValueLetter(args: { value: number }) {
   return null;
 }
 
-function GameBoard(props: { rolledNumbers: Game["rolledNumbers"] }) {
-  const [board] = useState(generateBoard());
-  const winningCoordinates = getWinningCoordinates({
-    board,
-    rolledNumbers: props.rolledNumbers,
-  });
-  useEffect(() => {
-    if (winningCoordinates) {
-      console.info("winningCoordinates", winningCoordinates);
-    }
-  }, [winningCoordinates]);
+function GameBoard(props: {
+  board: number[][];
+  rolledNumbers: Game["rolledNumbers"];
+}) {
+  const winningCoordinates = getWinningCoordinates(props);
 
   return (
     <div>
@@ -154,7 +183,7 @@ function GameBoard(props: { rolledNumbers: Game["rolledNumbers"] }) {
             </div>
 
             {COL_ROWS.map((row) => {
-              const value = board[column][row];
+              const value = props.board[column][row];
               const isActivated = getHasRolled(value, props.rolledNumbers);
               return (
                 <div
