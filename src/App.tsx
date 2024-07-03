@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import "./App.css";
 import cn from "classnames";
-import { COL_ROWS, Game, getWinningCoordinates, ranges } from "./lib/game";
+import {
+  Board,
+  COL_ROWS,
+  Game,
+  getWinningCoordinates,
+  ranges,
+} from "./lib/game";
 
 const game = new Game();
 
@@ -41,7 +47,7 @@ export default function App() {
           {boards.map((board) => (
             <GameBoard
               key={board.id}
-              board={board.layout}
+              board={board}
               rolledNumbers={rolledNumbers}
             />
           ))}
@@ -101,7 +107,7 @@ function getValueLetter(args: { value: number }) {
 }
 
 function GameBoard(props: {
-  board: number[][];
+  board: Board;
   rolledNumbers: Game["rolledNumbers"];
 }) {
   const winningCoordinates = getWinningCoordinates(props);
@@ -120,7 +126,7 @@ function GameBoard(props: {
             </div>
 
             {COL_ROWS.map((row) => {
-              const value = props.board[column][row];
+              const value = props.board.layout[column][row];
               const isActivated = getHasRolled(value, props.rolledNumbers);
               return (
                 <div

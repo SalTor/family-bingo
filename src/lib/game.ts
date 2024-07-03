@@ -1,10 +1,13 @@
 import { v4 } from "uuid";
+
+export type Board = {
+  id: string;
+  layout: number[][];
+};
+
 export class Game {
   rolledNumbers: Array<number>;
-  boards: Array<{
-    id: string;
-    layout: number[][];
-  }>;
+  boards: Array<Board>;
 
   constructor() {
     this.rolledNumbers = [];
@@ -93,7 +96,7 @@ function getNumInRange(min: number, max: number) {
 }
 
 type GetIsWinningBoardArgs = {
-  board: Array<Array<number>>;
+  board: Board;
   rolledNumbers: Game["rolledNumbers"];
 };
 export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
@@ -103,9 +106,9 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
 
   function checkColumns() {
     const col_counts: Record<number, number> = {};
-    for (let i = 0; i < board.length; i++) {
-      for (let j = 0; j < board[i].length; j++) {
-        const value = board[i][j];
+    for (let i = 0; i < board.layout.length; i++) {
+      for (let j = 0; j < board.layout[i].length; j++) {
+        const value = board.layout[i][j];
         if (getHasRolled(value, rolledNumbers)) {
           col_counts[i] = (col_counts[i] || 0) + 1;
         } else {
@@ -114,7 +117,7 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
       }
     }
     const winningColumn = Object.entries(col_counts).find(
-      ([, v]) => v === board.length,
+      ([, v]) => v === board.layout.length,
     );
 
     if (winningColumn) {
@@ -126,9 +129,9 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
 
   function checkRows() {
     const row_counts: Record<number, number> = {};
-    for (let i = 0; i < board.length; i++) {
-      for (let j = 0; j < board[i].length; j++) {
-        const value = board[j][i];
+    for (let i = 0; i < board.layout.length; i++) {
+      for (let j = 0; j < board.layout[i].length; j++) {
+        const value = board.layout[j][i];
         if (getHasRolled(value, rolledNumbers)) {
           row_counts[i] = (row_counts[i] || 0) + 1;
         } else {
@@ -137,7 +140,7 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
       }
     }
     const winningRow = Object.entries(row_counts).find(
-      ([, v]) => v === board.length,
+      ([, v]) => v === board.layout.length,
     );
 
     if (winningRow) {
@@ -150,35 +153,35 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
   function checkDiagonals() {
     let left_right_count = 0;
 
-    for (let i = 0; i < board.length; i++) {
-      const LRV = board[i][i];
+    for (let i = 0; i < board.layout.length; i++) {
+      const LRV = board.layout[i][i];
       if (getHasRolled(LRV, rolledNumbers)) {
         left_right_count += 1;
       }
     }
 
-    if (left_right_count === board.length) {
+    if (left_right_count === board.layout.length) {
       return {
         diagonal: [
           [0, 0],
-          [board.length - 1, board.length - 1],
+          [board.layout.length - 1, board.layout.length - 1],
         ],
       };
     }
 
     let right_left_count = 0;
-    for (let i = 0; i < board.length; i++) {
-      const RLV = board[board.length - 1 - i][i];
+    for (let i = 0; i < board.layout.length; i++) {
+      const RLV = board.layout[board.layout.length - 1 - i][i];
       if (getHasRolled(RLV, rolledNumbers)) {
         right_left_count += 1;
       }
     }
 
-    if (right_left_count === board.length) {
+    if (right_left_count === board.layout.length) {
       return {
         diagonal: [
-          [board.length - 1, 0],
-          [0, board.length - 1],
+          [board.layout.length - 1, 0],
+          [0, board.layout.length - 1],
         ],
       };
     }
