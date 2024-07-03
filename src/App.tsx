@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import "./App.css";
 import cn from "classnames";
-import { COL_ROWS, Game, ranges } from "./lib/game";
+import { COL_ROWS, Game, getWinningCoordinates, ranges } from "./lib/game";
 
 const game = new Game();
 
@@ -223,97 +223,4 @@ function translateCoordinate(
 
 function getHasRolled(value: number, rolledNumbers: Array<number>) {
   return new Set(rolledNumbers).has(value);
-}
-
-type GetIsWinningBoardArgs = {
-  board: Array<Array<number>>;
-  rolledNumbers: Game["rolledNumbers"];
-};
-function getWinningCoordinates(args: GetIsWinningBoardArgs) {
-  const { board, rolledNumbers } = args;
-
-  return checkColumns() || checkRows() || checkDiagonals();
-
-  function checkColumns() {
-    const col_counts: Record<number, number> = {};
-    for (let i = 0; i < board.length; i++) {
-      for (let j = 0; j < board[i].length; j++) {
-        const value = board[i][j];
-        if (getHasRolled(value, rolledNumbers)) {
-          col_counts[i] = (col_counts[i] || 0) + 1;
-        } else {
-          col_counts[i] = col_counts[i] || 0;
-        }
-      }
-    }
-    const winningColumn = Object.entries(col_counts).find(
-      ([, v]) => v === board.length,
-    );
-
-    if (winningColumn) {
-      return { column: parseInt(winningColumn[0]) };
-    }
-
-    return null;
-  }
-
-  function checkRows() {
-    const row_counts: Record<number, number> = {};
-    for (let i = 0; i < board.length; i++) {
-      for (let j = 0; j < board[i].length; j++) {
-        const value = board[j][i];
-        if (getHasRolled(value, rolledNumbers)) {
-          row_counts[i] = (row_counts[i] || 0) + 1;
-        } else {
-          row_counts[i] = row_counts[i] || 0;
-        }
-      }
-    }
-    const winningRow = Object.entries(row_counts).find(
-      ([, v]) => v === board.length,
-    );
-
-    if (winningRow) {
-      return { row: parseInt(winningRow[0]) };
-    }
-
-    return null;
-  }
-
-  function checkDiagonals() {
-    let left_right_count = 0;
-
-    for (let i = 0; i < board.length; i++) {
-      const LRV = board[i][i];
-      if (getHasRolled(LRV, rolledNumbers)) {
-        left_right_count += 1;
-      }
-    }
-
-    if (left_right_count === board.length) {
-      return {
-        diagonal: [
-          [0, 0],
-          [board.length - 1, board.length - 1],
-        ],
-      };
-    }
-
-    let right_left_count = 0;
-    for (let i = 0; i < board.length; i++) {
-      const RLV = board[board.length - 1 - i][i];
-      if (getHasRolled(RLV, rolledNumbers)) {
-        right_left_count += 1;
-      }
-    }
-
-    if (right_left_count === board.length) {
-      return {
-        diagonal: [
-          [board.length - 1, 0],
-          [0, board.length - 1],
-        ],
-      };
-    }
-  }
 }
