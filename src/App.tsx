@@ -1,12 +1,6 @@
 import "./App.css";
 import cn from "classnames";
-import {
-  IGameContext,
-  useGame,
-  ranges,
-  Board,
-  COL_ROWS,
-} from "./lib/GameContext";
+import { IGameContext, useGame, ranges, Board } from "./lib/GameContext";
 
 export default function App() {
   const game = useGame();
@@ -60,8 +54,8 @@ function RolledNumbers() {
   );
 }
 
-function getColumnLetter(args: { index: number | string }) {
-  switch (args.index.toString()) {
+function getColumnLetter(args: { columnIndex: number | string }) {
+  switch (args.columnIndex.toString()) {
     case "0":
       return "B";
     case "1":
@@ -83,7 +77,7 @@ function getValueLetter(args: { value: number }) {
     return args.value >= min && args.value <= max;
   });
   if (match) {
-    return getColumnLetter({ index: match[0] });
+    return getColumnLetter({ columnIndex: match[0] });
   }
   return null;
 }
@@ -91,43 +85,48 @@ function getValueLetter(args: { value: number }) {
 function GameBoard(props: { board: Board }) {
   const game = useGame();
 
+  const columns = props.board.layout;
+
   return (
     <div>
       <div className="flex relative" id="board">
-        {COL_ROWS.map((column) => (
-          <div
-            key={`col-${column}`}
-            data-column
-            className="flex flex-col border border-x-0 border-y-0 border-solid border-black"
-          >
-            <div className="w-10 h-10 flex justify-center items-center">
-              {getColumnLetter({ index: column })}
-            </div>
+        {columns.map((column, columnIndex) => {
+          const columnLetter = getColumnLetter({ columnIndex });
 
-            {COL_ROWS.map((row) => {
-              const value = props.board.layout[column][row];
-              const isActivated = getHasRolled(value, game.rolledNumbers);
-              return (
-                <div
-                  key={`cell-${row}`}
-                  data-cell
-                  className={cn(
-                    "relative w-10 h-10 border-black border border-solid flex justify-center items-center",
-                    {
-                      "border-r-0": column !== COL_ROWS.length - 1,
-                      "border-b-0": row !== COL_ROWS.length - 1,
-                    },
-                  )}
-                >
-                  {value}
-                  {isActivated && (
-                    <div className="h-[90%] w-[90%] absolute rounded-[50%] bg-red-400/50" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+          return (
+            <div
+              key={`col-${columnLetter}`}
+              data-column
+              className="flex flex-col border border-x-0 border-y-0 border-solid border-black"
+            >
+              <div className="w-10 h-10 flex justify-center items-center">
+                {columnLetter}
+              </div>
+
+              {column.map((cell, cellIndex) => {
+                const isActivated = getHasRolled(cell, game.rolledNumbers);
+                return (
+                  <div
+                    key={`cell-${cell}`}
+                    data-cell
+                    className={cn(
+                      "relative w-10 h-10 border-black border border-solid flex justify-center items-center",
+                      {
+                        "border-r-0": columnIndex !== columns.length - 1,
+                        "border-b-0": cellIndex !== column.length - 1,
+                      },
+                    )}
+                  >
+                    {cell}
+                    {isActivated && (
+                      <div className="h-[90%] w-[90%] absolute rounded-[50%] bg-red-400/50" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
