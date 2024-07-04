@@ -11,6 +11,7 @@ export default function App() {
 
       <div className="flex gap-2">
         <button onClick={() => game.roll()}>Roll a number!</button>
+
         {game.rolledNumbers.length > 0 && (
           <button onClick={() => game.resetGame()}>Reset game</button>
         )}
@@ -39,6 +40,7 @@ function RolledNumbers() {
   return (
     <div>
       <h2>Rolled numbers</h2>
+
       <div className="relative max-h-[200px] overflow-y-scroll overflow-x-visible">
         {[...game.rolledNumbers].reverse().map((roll, index) => (
           <p
@@ -76,9 +78,11 @@ function getValueLetter(args: { value: number }) {
     const [min, max] = range;
     return args.value >= min && args.value <= max;
   });
+
   if (match) {
     return getColumnLetter({ columnIndex: match[0] });
   }
+
   return null;
 }
 

@@ -6,10 +6,6 @@ export type Board = {
   layout: number[][];
 };
 
-export const COL_ROWS = Array(5)
-  .fill(null)
-  .map((_, index) => index);
-
 export const ranges: Record<number, Array<number>> = {
   0: [1, 15],
   1: [16, 30],
@@ -112,26 +108,38 @@ export function GameProvider(props: { children: React.ReactNode }) {
 export const useGame = () => useContext(GameContext);
 
 function generateBoard() {
-  const result = [...COL_ROWS].map(() => [...COL_ROWS]);
+  const result: number[][] = [];
+  const currentValues = new Set<number>();
 
-  const currentValues = new Set();
+  const size = 5;
 
-  COL_ROWS.forEach((_, i) => {
-    COL_ROWS.forEach((_, j) => {
-      if (i in ranges) {
-        const [min, max] = ranges[i];
+  for (let columnIndex = 0; columnIndex < size; columnIndex++) {
+    result.push(buildColumn(columnIndex, size, currentValues));
+  }
 
-        let value;
+  return result;
+}
 
-        do {
-          value = getNumInRange(min, max);
-        } while (currentValues.has(value));
+function buildColumn(
+  columnIndex: number,
+  size: number,
+  currentValues: Set<number>,
+) {
+  const result: number[] = [];
 
-        currentValues.add(value);
-        result[i][j] = value;
-      }
-    });
-  });
+  const [min, max] = ranges[columnIndex];
+
+  for (let j = 0; j < size; j++) {
+    let value;
+
+    do {
+      value = getNumInRange(min, max);
+    } while (currentValues.has(value));
+
+    currentValues.add(value);
+
+    result.push(value);
+  }
 
   return result;
 }
