@@ -1,6 +1,6 @@
 import "./App.css";
 import cn from "classnames";
-import { IGameContext, useGame, Board } from "./lib/GameContext";
+import { useGame, Board } from "./lib/GameContext";
 import { useEffect } from "react";
 
 export default function App() {
@@ -112,105 +112,4 @@ function GameBoard(props: { board: Board }) {
       </div>
     </div>
   );
-}
-
-type GetIsWinningBoardArgs = {
-  board: Board;
-  rolledNumbers: IGameContext["rolledNumbers"];
-};
-export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
-  const game = useGame();
-  const { board } = args;
-
-  return checkColumns() || checkRows() || checkDiagonals();
-
-  function checkColumns() {
-    const col_counts: Record<number, number> = {};
-    const columns = board.layout;
-    for (let i = 0; i < columns.length; i++) {
-      const { column, values } = columns[i];
-      for (let j = 0; j < values.length; j++) {
-        const value = values[j];
-        if (game.getHasRolled({ column, value })) {
-          col_counts[i] = (col_counts[i] || 0) + 1;
-        } else {
-          col_counts[i] = col_counts[i] || 0;
-        }
-      }
-    }
-    const winningColumn = Object.entries(col_counts).find(
-      ([, v]) => v === board.layout.length,
-    );
-
-    if (winningColumn) {
-      return { column: parseInt(winningColumn[0]) };
-    }
-
-    return null;
-  }
-
-  function checkRows() {
-    const row_counts: Record<number, number> = {};
-
-    const columns = board.layout;
-    for (let i = 0; i < columns.length; i++) {
-      const { column, values } = columns[i];
-      for (let j = 0; j < values.length; j++) {
-        const value = values[j];
-        if (game.getHasRolled({ column, value })) {
-          row_counts[i] = (row_counts[i] || 0) + 1;
-        } else {
-          row_counts[i] = row_counts[i] || 0;
-        }
-      }
-    }
-    const winningRow = Object.entries(row_counts).find(
-      ([, v]) => v === board.layout.length,
-    );
-
-    if (winningRow) {
-      return { row: parseInt(winningRow[0]) };
-    }
-
-    return null;
-  }
-
-  function checkDiagonals() {
-    let left_right_count = 0;
-
-    for (let i = 0; i < board.layout.length; i++) {
-      const { column, values } = board.layout[i];
-      const LRV = values[i];
-      if (game.getHasRolled({ column, value: LRV })) {
-        left_right_count += 1;
-      }
-    }
-
-    if (left_right_count === board.layout.length) {
-      return {
-        diagonal: [
-          [0, 0],
-          [board.layout.length - 1, board.layout.length - 1],
-        ],
-      };
-    }
-
-    let right_left_count = 0;
-    for (let i = 0; i < board.layout.length; i++) {
-      const { column, values } = board.layout[board.layout.length - 1 - i];
-      const RLV = values[i];
-      if (game.getHasRolled({ column, value: RLV })) {
-        right_left_count += 1;
-      }
-    }
-
-    if (right_left_count === board.layout.length) {
-      return {
-        diagonal: [
-          [board.layout.length - 1, 0],
-          [0, board.layout.length - 1],
-        ],
-      };
-    }
-  }
 }
