@@ -1,70 +1,52 @@
-import { useMemo, useState } from "react";
 import "./App.css";
 import cn from "classnames";
 import {
+  IGameContext,
+  useGame,
+  ranges,
   Board,
   COL_ROWS,
-  Game,
-  getWinningCoordinates,
-  ranges,
-} from "./lib/game";
-
-const game = new Game();
+} from "./lib/GameContext";
 
 export default function App() {
-  const [rolledNumbers, setRolledNumbers] = useState(game.rolledNumbers);
-  const numberOfPlayers = 2;
-  const boards = useMemo(() => {
-    game.generateBoardsForPlayerCount(numberOfPlayers);
-    return game.boards;
-  }, [numberOfPlayers]);
+  const game = useGame();
 
   return (
     <div className="font-sans p-4">
       <h1 className="text-3xl">Welcome to Family Bingo!</h1>
 
       <div className="flex gap-2">
-        <button
-          onClick={() => {
-            game.roll();
-            setRolledNumbers([...game.rolledNumbers]);
-          }}
-        >
-          Roll a number!
-        </button>
-        <button
-          onClick={() => {
-            game.reset();
-            setRolledNumbers([...game.rolledNumbers]);
-          }}
-        >
-          Reset game
-        </button>
+        <button onClick={() => game.roll()}>Roll a number!</button>
+        {game.rolledNumbers.length > 0 && (
+          <button onClick={() => game.resetGame()}>Reset game</button>
+        )}
       </div>
 
       <div className="flex gap-10">
         <div className="flex flex-col gap-5">
-          {boards.map((board) => (
-            <GameBoard
-              key={board.id}
-              board={board}
-              rolledNumbers={rolledNumbers}
-            />
+          {game.boards.map((board) => (
+            <GameBoard key={board.id} board={board} />
           ))}
         </div>
 
-        <RolledNumbers values={rolledNumbers} />
+        <RolledNumbers />
       </div>
     </div>
   );
 }
 
-function RolledNumbers(props: { values: Game["rolledNumbers"] }) {
+function RolledNumbers() {
+  const game = useGame();
+
+  if (game.rolledNumbers.length === 0) {
+    return null;
+  }
+
   return (
     <div>
       <h2>Rolled numbers</h2>
       <div className="relative max-h-[200px] overflow-y-scroll overflow-x-visible">
-        {[...props.values].reverse().map((roll, index) => (
+        {[...game.rolledNumbers].reverse().map((roll, index) => (
           <p
             key={roll}
             className={cn(index === 0 && "rounded-md bg-blue-200 font-bold")}
@@ -106,11 +88,13 @@ function getValueLetter(args: { value: number }) {
   return null;
 }
 
-function GameBoard(props: {
-  board: Board;
-  rolledNumbers: Game["rolledNumbers"];
-}) {
-  const winningCoordinates = getWinningCoordinates(props);
+function GameBoard(props: { board: Board }) {
+  const game = useGame();
+
+  const winningCoordinates = getWinningCoordinates({
+    board: props.board,
+    rolledNumbers: game.rolledNumbers,
+  });
 
   return (
     <div>
@@ -127,7 +111,7 @@ function GameBoard(props: {
 
             {COL_ROWS.map((row) => {
               const value = props.board.layout[column][row];
-              const isActivated = getHasRolled(value, props.rolledNumbers);
+              const isActivated = getHasRolled(value, game.rolledNumbers);
               return (
                 <div
                   key={`cell-${row}`}
@@ -227,6 +211,102 @@ function translateCoordinate(
   return {};
 }
 
-function getHasRolled(value: number, rolledNumbers: Array<number>) {
+function getHasRolled(
+  value: number,
+  rolledNumbers: IGameContext["rolledNumbers"],
+) {
   return new Set(rolledNumbers).has(value);
+}
+
+type GetIsWinningBoardArgs = {
+  board: Board;
+  rolledNumbers: IGameContext["rolledNumbers"];
+};
+export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
+  const { board, rolledNumbers } = args;
+
+  return checkColumns() || checkRows() || checkDiagonals();
+
+  function checkColumns() {
+    const col_counts: Record<number, number> = {};
+    for (let i = 0; i < board.layout.length; i++) {
+      for (let j = 0; j < board.layout[i].length; j++) {
+        const value = board.layout[i][j];
+        if (getHasRolled(value, rolledNumbers)) {
+          col_counts[i] = (col_counts[i] || 0) + 1;
+        } else {
+          col_counts[i] = col_counts[i] || 0;
+        }
+      }
+    }
+    const winningColumn = Object.entries(col_counts).find(
+      ([, v]) => v === board.layout.length,
+    );
+
+    if (winningColumn) {
+      return { column: parseInt(winningColumn[0]) };
+    }
+
+    return null;
+  }
+
+  function checkRows() {
+    const row_counts: Record<number, number> = {};
+    for (let i = 0; i < board.layout.length; i++) {
+      for (let j = 0; j < board.layout[i].length; j++) {
+        const value = board.layout[j][i];
+        if (getHasRolled(value, rolledNumbers)) {
+          row_counts[i] = (row_counts[i] || 0) + 1;
+        } else {
+          row_counts[i] = row_counts[i] || 0;
+        }
+      }
+    }
+    const winningRow = Object.entries(row_counts).find(
+      ([, v]) => v === board.layout.length,
+    );
+
+    if (winningRow) {
+      return { row: parseInt(winningRow[0]) };
+    }
+
+    return null;
+  }
+
+  function checkDiagonals() {
+    let left_right_count = 0;
+
+    for (let i = 0; i < board.layout.length; i++) {
+      const LRV = board.layout[i][i];
+      if (getHasRolled(LRV, rolledNumbers)) {
+        left_right_count += 1;
+      }
+    }
+
+    if (left_right_count === board.layout.length) {
+      return {
+        diagonal: [
+          [0, 0],
+          [board.layout.length - 1, board.layout.length - 1],
+        ],
+      };
+    }
+
+    let right_left_count = 0;
+    for (let i = 0; i < board.layout.length; i++) {
+      const RLV = board.layout[board.layout.length - 1 - i][i];
+      if (getHasRolled(RLV, rolledNumbers)) {
+        right_left_count += 1;
+      }
+    }
+
+    if (right_left_count === board.layout.length) {
+      return {
+        diagonal: [
+          [board.layout.length - 1, 0],
+          [0, board.layout.length - 1],
+        ],
+      };
+    }
+  }
 }

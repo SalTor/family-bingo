@@ -1,12 +1,16 @@
 import { createContext, useContext, useState } from "react";
-import { Board } from "./game";
 import { v4 } from "uuid";
 
-const COL_ROWS = Array(5)
+export type Board = {
+  id: string;
+  layout: number[][];
+};
+
+export const COL_ROWS = Array(5)
   .fill(null)
   .map((_, index) => index);
 
-const ranges: Record<number, Array<number>> = {
+export const ranges: Record<number, Array<number>> = {
   0: [1, 15],
   1: [16, 30],
   2: [31, 45],
@@ -14,22 +18,24 @@ const ranges: Record<number, Array<number>> = {
   4: [61, 75],
 };
 
-const GameContext = createContext<{
+export type IGameContext = {
   boards: Array<Board>;
   makeBoards: (_: number) => unknown;
-  rolledNumbers: Set<number>;
-  roll: (_: number) => void;
+  rolledNumbers: Array<number>;
+  roll: () => void;
   resetGame: () => void;
-}>({
+};
+
+const GameContext = createContext<IGameContext>({
   boards: [],
   makeBoards: (_: number) => {},
-  rolledNumbers: new Set(),
-  roll: (_: number) => {},
+  rolledNumbers: [],
+  roll: () => {},
   resetGame: () => {},
 });
 
-export function GameProvider(props: { children: React.ReactNode }) {
-  const [boards, setBoards] = useState([
+function generateDefaultBoards() {
+  return [
     {
       id: "1",
       layout: generateBoard(),
@@ -38,7 +44,11 @@ export function GameProvider(props: { children: React.ReactNode }) {
       id: "2",
       layout: generateBoard(),
     },
-  ]);
+  ];
+}
+
+export function GameProvider(props: { children: React.ReactNode }) {
+  const [boards, setBoards] = useState(generateDefaultBoards());
 
   function makeBoards(howMany: number) {
     const result: Array<Board> = [];
@@ -72,7 +82,7 @@ export function GameProvider(props: { children: React.ReactNode }) {
       value = getNumInRange(1, 75);
     } while (getHasRolled(value));
 
-    setRolledNumbers(rolledNumbers.add(value));
+    setRolledNumbers(new Set(rolledNumbers).add(value));
   }
 
   function getHasRolled(num: number) {
@@ -80,13 +90,19 @@ export function GameProvider(props: { children: React.ReactNode }) {
   }
 
   function resetGame() {
-    setBoards([]);
+    setBoards(generateDefaultBoards());
     setRolledNumbers(new Set());
   }
 
   return (
     <GameContext.Provider
-      value={{ boards, makeBoards, rolledNumbers, roll, resetGame }}
+      value={{
+        boards,
+        makeBoards,
+        rolledNumbers: Array.from(rolledNumbers),
+        roll,
+        resetGame,
+      }}
     >
       {props.children}
     </GameContext.Provider>
