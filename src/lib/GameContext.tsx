@@ -3,13 +3,7 @@ import { v4 } from "uuid";
 
 export type Board = {
   id: string;
-  layout: [
-    { column: "B"; values: number[] },
-    { column: "I"; values: number[] },
-    { column: "N"; values: number[] },
-    { column: "G"; values: number[] },
-    { column: "O"; values: number[] },
-  ];
+  layout: Array<{ column: string; values: number[]; range: [number, number] }>;
 };
 
 const rangeByLetter: Record<string, [number, number]> = {
@@ -22,10 +16,6 @@ const rangeByLetter: Record<string, [number, number]> = {
 export const rangeToLetter: Array<[[number, number], string]> = Object.entries(
   rangeByLetter,
 ).map(([letter, range]) => [range, letter]);
-
-function rangeFor(letter: string) {
-  return rangeByLetter[letter];
-}
 
 export type IGameContext = {
   boards: Array<Board>;
@@ -63,7 +53,7 @@ export function GameProvider(props: { children: React.ReactNode }) {
 
       result.push({
         id,
-        layout: generateBoard(),
+        layout: generateBoardLayout(),
       });
     }
 
@@ -109,21 +99,26 @@ export function GameProvider(props: { children: React.ReactNode }) {
     </GameContext.Provider>
   );
 
-  function generateBoard() {
+  function generateBoardLayout(): Board["layout"] {
     const currentValues = new Set<number>();
 
-    return [
-      { column: "B", values: buildColumn(rangeFor("B")) },
-      { column: "I", values: buildColumn(rangeFor("I")) },
-      { column: "N", values: buildColumn(rangeFor("N")) },
-      { column: "G", values: buildColumn(rangeFor("G")) },
-      { column: "O", values: buildColumn(rangeFor("O")) },
-    ] satisfies Board["layout"];
+    return ["B", "I", "N", "G", "O"].map((c) => buildColumn(rangeFor(c)));
 
-    function buildColumn(range: [min: number, max: number]) {
-      const [min, max] = range;
+    function rangeFor(letter: string) {
+      return { column: letter, range: rangeByLetter[letter] };
+    }
 
-      return [getValue(), getValue(), getValue(), getValue(), getValue()];
+    function buildColumn(args: {
+      column: string;
+      range: [min: number, max: number];
+    }) {
+      const [min, max] = args.range;
+
+      return {
+        column: args.column,
+        range: args.range,
+        values: [getValue(), getValue(), getValue(), getValue(), getValue()],
+      };
 
       function getValue() {
         let value;
