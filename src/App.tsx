@@ -18,7 +18,7 @@ export default function App() {
       <div className="flex gap-2">
         <button onClick={() => game.roll()}>Roll a number!</button>
 
-        {game.rolledNumbers.length > 0 && (
+        {game.rolledNumbers.size > 0 && (
           <button onClick={() => game.resetGame()}>Reset game</button>
         )}
       </div>
@@ -39,7 +39,7 @@ export default function App() {
 function RolledNumbers() {
   const game = useGame();
 
-  if (game.rolledNumbers.length === 0) {
+  if (game.rolledNumbers.size === 0) {
     return null;
   }
 
@@ -49,13 +49,12 @@ function RolledNumbers() {
 
       <div className="relative max-h-[200px] overflow-y-scroll overflow-x-visible">
         {[...game.rolledNumbers].reverse().map((roll, index) => {
-          const displayValue = `${roll.column}${roll.value}`;
           return (
             <p
-              key={displayValue}
+              key={roll}
               className={cn(index === 0 && "rounded-md bg-blue-200 font-bold")}
             >
-              {displayValue}
+              {roll}
             </p>
           );
         })}
@@ -86,7 +85,7 @@ function GameBoard(props: { board: Board }) {
               </div>
 
               {values.map((value, cellIndex) => {
-                const isActivated = game.getHasRolled({ column, value });
+                const isActivated = game.getHasRolled(value);
                 return (
                   <div
                     key={`cell-${value}`}
@@ -99,7 +98,7 @@ function GameBoard(props: { board: Board }) {
                       },
                     )}
                   >
-                    {value}
+                    {value.slice(1)}
                     {isActivated && (
                       <div className="h-[90%] w-[90%] absolute rounded-[50%] bg-red-400/50" />
                     )}

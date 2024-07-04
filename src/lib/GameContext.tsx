@@ -3,29 +3,31 @@ import { v4 } from "uuid";
 
 export type Board = {
   id: string;
-  layout: Array<{ column: string; values: number[]; range: [number, number] }>;
+  layout: Array<{ column: string; values: string[] }>;
 };
 
-const rangeByLetter: Record<string, [number, number]> = {
-  B: [1, 15],
-  I: [16, 30],
-  N: [31, 45],
-  G: [46, 60],
-  O: [61, 75],
-};
-export const rangeToLetter: Array<[[number, number], string]> = Object.entries(
-  rangeByLetter,
-).map(([letter, range]) => [range, letter]);
+const columnRanges: [string, [number, number]][] = [
+  ["B", [1, 15]],
+  ["I", [16, 30]],
+  ["N", [31, 45]],
+  ["G", [46, 60]],
+  ["O", [61, 75]],
+];
+const potentialRolls = columnRanges.flatMap(([column, [min, max]]) => {
+  const result = [];
 
-export type Roll = {
-  column: string;
-  value: number;
-};
+  for (let value = min; value <= max; value++) {
+    result.push(`${column}${value}`);
+  }
+
+  return result;
+});
+
 export type IGameContext = {
   boards: Array<Board>;
   makeBoards: (_: number) => void;
-  rolledNumbers: Array<Roll>;
-  getHasRolled: (_: Roll) => boolean;
+  rolledNumbers: Set<string>;
+  getHasRolled: (_: string) => boolean;
   roll: () => void;
   resetGame: () => void;
 };
@@ -33,8 +35,8 @@ export type IGameContext = {
 const GameContext = createContext<IGameContext>({
   boards: [],
   makeBoards: (_: number) => {},
-  rolledNumbers: [],
-  getHasRolled: (_: Roll) => true,
+  rolledNumbers: new Set(),
+  getHasRolled: (_: string) => true,
   roll: () => {},
   resetGame: () => {},
 });
@@ -70,28 +72,20 @@ export function GameProvider(props: { children: React.ReactNode }) {
     return new Set(boards.map((b) => b.id)).has(id);
   }
 
-  const [rolledNumbers, setRolledNumbers] = useState(new Set<Roll>());
+  const [rolledNumbers, setRolledNumbers] = useState(new Set<string>());
 
   function roll() {
-    const cols = ["B", "I", "N", "G", "O"] as const;
-
-    const column = cols[getNumInRange(0, cols.length - 1)];
-
-    const [min, max] = rangeByLetter[column];
-
-    let value: number;
+    let roll: string;
 
     do {
-      value = getNumInRange(min, max);
-    } while (getHasRolled({ column, value }));
+      roll = potentialRolls[getNumInRange(0, potentialRolls.length - 1)];
+    } while (getHasRolled(roll));
 
-    setRolledNumbers(new Set(rolledNumbers).add({ column, value }));
+    setRolledNumbers(new Set(rolledNumbers).add(roll));
   }
 
-  function getHasRolled(roll: Roll) {
-    return Array.from(rolledNumbers).some(
-      (r) => r.column === roll.column && r.value === roll.value,
-    );
+  function getHasRolled(roll: string) {
+    return rolledNumbers.has(roll);
   }
 
   function resetGame() {
@@ -104,7 +98,7 @@ export function GameProvider(props: { children: React.ReactNode }) {
       value={{
         boards,
         makeBoards,
-        rolledNumbers: Array.from(rolledNumbers),
+        rolledNumbers,
         getHasRolled,
         roll,
         resetGame,
@@ -115,38 +109,37 @@ export function GameProvider(props: { children: React.ReactNode }) {
   );
 
   function generateBoardLayout(): Board["layout"] {
-    const currentValues = new Set<number>();
+    const optionsByColumn = potentialRolls.reduce(
+      (b, option) => {
+        const colName = option.slice(0, 1);
+        if (Array.isArray(b[colName])) {
+          b[colName].push(option);
+        } else {
+          b[colName] = [option];
+        }
+        return b;
+      },
+      {} as Record<string, string[]>,
+    );
 
-    return ["B", "I", "N", "G", "O"].map((c) => buildColumn(rangeFor(c)));
-
-    function rangeFor(letter: string) {
-      return { column: letter, range: rangeByLetter[letter] };
-    }
-
-    function buildColumn(args: {
-      column: string;
-      range: [min: number, max: number];
-    }) {
-      const [min, max] = args.range;
-
-      return {
-        column: args.column,
-        range: args.range,
-        values: [getValue(), getValue(), getValue(), getValue(), getValue()],
+    type BoardColl = { column: string; values: string[] };
+    const acc: Array<BoardColl> = [];
+    for (const [key, [...column]] of Object.entries(optionsByColumn)) {
+      const result: BoardColl = {
+        column: key,
+        values: [],
       };
 
-      function getValue() {
-        let value;
-
-        do {
-          value = getNumInRange(min, max);
-        } while (currentValues.has(value));
-
-        currentValues.add(value);
-
-        return value;
+      while (result.values.length < 5) {
+        const index = getNumInRange(0, column.length - 1);
+        const [val] = column.splice(index, index + 1);
+        result.values.push(val);
       }
+
+      acc.push(result);
     }
+
+    return acc;
   }
 
   function getNumInRange(min: number, max: number) {
