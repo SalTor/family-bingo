@@ -91,11 +91,6 @@ function getValueLetter(args: { value: number }) {
 function GameBoard(props: { board: Board }) {
   const game = useGame();
 
-  const winningCoordinates = getWinningCoordinates({
-    board: props.board,
-    rolledNumbers: game.rolledNumbers,
-  });
-
   return (
     <div>
       <div className="flex relative" id="board">
@@ -133,82 +128,9 @@ function GameBoard(props: { board: Board }) {
             })}
           </div>
         ))}
-
-        {winningCoordinates && (
-          <svg className="h-full w-full absolute inset-0">
-            <line stroke="black" {...translateCoordinate(winningCoordinates)} />
-          </svg>
-        )}
       </div>
     </div>
   );
-}
-
-function translateCoordinate(
-  winningCoordinates:
-    | Readonly<{ row: number }>
-    | Readonly<{ column: number }>
-    | Readonly<{ diagonal: number[][] }>,
-) {
-  const columns = Array.from(document.querySelectorAll("[data-column]"));
-
-  if ("row" in winningCoordinates) {
-    // handle row
-    const cells: Array<Element> = [];
-    columns.forEach((_) => {
-      Array.from(_.querySelectorAll("[data-cell]")).forEach((__, cellIndex) => {
-        if (cellIndex === winningCoordinates.row) {
-          cells.push(__);
-        }
-      });
-    });
-    const start = cells[0] as HTMLElement;
-    const end = cells[cells.length - 1] as HTMLElement;
-    return {
-      x1: start.offsetLeft,
-      y1: start.offsetTop + 20,
-      x2: end.offsetLeft + 40,
-      y2: end.offsetTop + 20,
-    };
-  }
-
-  if ("column" in winningCoordinates) {
-    // handle column
-    const col = columns[winningCoordinates.column];
-    console.log(col);
-    const children = Array.from(col.children);
-    const start = children[0] as HTMLElement;
-    const end = children[children.length - 1] as HTMLElement;
-    return {
-      x1: start.offsetLeft + 20,
-      y1: start.offsetTop + 40,
-      x2: end.offsetLeft + 20,
-      y2: end.offsetTop + 40,
-    };
-  }
-
-  if ("diagonal" in winningCoordinates) {
-    // handle diagonals
-    const [[start_x, start_y], [end_x, end_y]] = winningCoordinates.diagonal;
-    const start = Array.from(columns[start_x].children)[start_y] as HTMLElement;
-    const end = Array.from(columns[end_x].children)[end_y] as HTMLElement;
-    if (start_x > end_x) {
-      return {
-        x1: start.offsetLeft + 40,
-        y1: start.offsetTop + 40,
-        x2: end.offsetLeft,
-        y2: end.offsetTop + 80,
-      };
-    }
-    return {
-      x1: start.offsetLeft,
-      y1: start.offsetTop + 40,
-      x2: end.offsetLeft + 40,
-      y2: end.offsetTop + 80,
-    };
-  }
-
-  return {};
 }
 
 function getHasRolled(
