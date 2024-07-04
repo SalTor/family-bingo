@@ -3,16 +3,29 @@ import { v4 } from "uuid";
 
 export type Board = {
   id: string;
-  layout: number[][];
+  layout: [
+    { column: "B"; values: number[] },
+    { column: "I"; values: number[] },
+    { column: "N"; values: number[] },
+    { column: "G"; values: number[] },
+    { column: "O"; values: number[] },
+  ];
 };
 
-export const ranges: Record<number, Array<number>> = {
-  0: [1, 15],
-  1: [16, 30],
-  2: [31, 45],
-  3: [46, 60],
-  4: [61, 75],
+const rangeByLetter: Record<string, [number, number]> = {
+  B: [1, 15],
+  I: [16, 30],
+  N: [31, 45],
+  G: [46, 60],
+  O: [61, 75],
 };
+export const rangeToLetter: Array<[[number, number], string]> = Object.entries(
+  rangeByLetter,
+).map(([letter, range]) => [range, letter]);
+
+function rangeFor(letter: string) {
+  return rangeByLetter[letter];
+}
 
 export type IGameContext = {
   boards: Array<Board>;
@@ -100,15 +113,15 @@ export function GameProvider(props: { children: React.ReactNode }) {
     const currentValues = new Set<number>();
 
     return [
-      buildColumn(0),
-      buildColumn(1),
-      buildColumn(2),
-      buildColumn(3),
-      buildColumn(4),
-    ];
+      { column: "B", values: buildColumn(rangeFor("B")) },
+      { column: "I", values: buildColumn(rangeFor("I")) },
+      { column: "N", values: buildColumn(rangeFor("N")) },
+      { column: "G", values: buildColumn(rangeFor("G")) },
+      { column: "O", values: buildColumn(rangeFor("O")) },
+    ] satisfies Board["layout"];
 
-    function buildColumn(columnIndex: number) {
-      const [min, max] = ranges[columnIndex];
+    function buildColumn(range: [min: number, max: number]) {
+      const [min, max] = range;
 
       return [getValue(), getValue(), getValue(), getValue(), getValue()];
 

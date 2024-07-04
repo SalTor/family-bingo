@@ -1,6 +1,6 @@
 import "./App.css";
 import cn from "classnames";
-import { IGameContext, useGame, ranges, Board } from "./lib/GameContext";
+import { IGameContext, useGame, Board, rangeToLetter } from "./lib/GameContext";
 import { useEffect } from "react";
 
 export default function App() {
@@ -43,6 +43,19 @@ function RolledNumbers() {
     return null;
   }
 
+  function getValueLetter(value: number) {
+    const match = rangeToLetter.find(
+      ([[min, max]]) => value >= min && value <= max,
+    );
+
+    if (match) {
+      const [, letter] = match;
+      return letter;
+    }
+
+    return null;
+  }
+
   return (
     <div>
       <h2>Rolled numbers</h2>
@@ -53,43 +66,13 @@ function RolledNumbers() {
             key={roll}
             className={cn(index === 0 && "rounded-md bg-blue-200 font-bold")}
           >
-            {getValueLetter({ value: roll })}
+            {getValueLetter(roll)}
             {roll}
           </p>
         ))}
       </div>
     </div>
   );
-}
-
-function getColumnLetter(args: { columnIndex: number | string }) {
-  switch (args.columnIndex.toString()) {
-    case "0":
-      return "B";
-    case "1":
-      return "I";
-    case "2":
-      return "N";
-    case "3":
-      return "G";
-    case "4":
-      return "O";
-    default:
-      return null;
-  }
-}
-
-function getValueLetter(args: { value: number }) {
-  const match = Object.entries(ranges).find(([, range]) => {
-    const [min, max] = range;
-    return args.value >= min && args.value <= max;
-  });
-
-  if (match) {
-    return getColumnLetter({ columnIndex: match[0] });
-  }
-
-  return null;
 }
 
 function GameBoard(props: { board: Board }) {
@@ -100,8 +83,8 @@ function GameBoard(props: { board: Board }) {
   return (
     <div>
       <div className="flex relative" id="board">
-        {columns.map((column, columnIndex) => {
-          const columnLetter = getColumnLetter({ columnIndex });
+        {columns.map(({ column, values }, columnIndex) => {
+          const columnLetter = column;
 
           return (
             <div
@@ -113,7 +96,7 @@ function GameBoard(props: { board: Board }) {
                 {columnLetter}
               </div>
 
-              {column.map((cell, cellIndex) => {
+              {values.map((cell, cellIndex) => {
                 const isActivated = getHasRolled(cell, game.rolledNumbers);
                 return (
                   <div
@@ -123,7 +106,7 @@ function GameBoard(props: { board: Board }) {
                       "relative w-10 h-10 border-black border border-solid flex justify-center items-center",
                       {
                         "border-r-0": columnIndex !== columns.length - 1,
-                        "border-b-0": cellIndex !== column.length - 1,
+                        "border-b-0": cellIndex !== values.length - 1,
                       },
                     )}
                   >
@@ -160,9 +143,11 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
 
   function checkColumns() {
     const col_counts: Record<number, number> = {};
-    for (let i = 0; i < board.layout.length; i++) {
-      for (let j = 0; j < board.layout[i].length; j++) {
-        const value = board.layout[i][j];
+    const columns = board.layout;
+    for (let i = 0; i < columns.length; i++) {
+      const values = columns[i].values;
+      for (let j = 0; j < values.length; j++) {
+        const value = values[j];
         if (getHasRolled(value, rolledNumbers)) {
           col_counts[i] = (col_counts[i] || 0) + 1;
         } else {
@@ -183,9 +168,12 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
 
   function checkRows() {
     const row_counts: Record<number, number> = {};
-    for (let i = 0; i < board.layout.length; i++) {
-      for (let j = 0; j < board.layout[i].length; j++) {
-        const value = board.layout[j][i];
+
+    const columns = board.layout;
+    for (let i = 0; i < columns.length; i++) {
+      const values = columns[i].values;
+      for (let j = 0; j < values.length; j++) {
+        const value = values[j];
         if (getHasRolled(value, rolledNumbers)) {
           row_counts[i] = (row_counts[i] || 0) + 1;
         } else {
@@ -208,7 +196,7 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
     let left_right_count = 0;
 
     for (let i = 0; i < board.layout.length; i++) {
-      const LRV = board.layout[i][i];
+      const LRV = board.layout[i].values[i];
       if (getHasRolled(LRV, rolledNumbers)) {
         left_right_count += 1;
       }
@@ -225,7 +213,7 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
 
     let right_left_count = 0;
     for (let i = 0; i < board.layout.length; i++) {
-      const RLV = board.layout[board.layout.length - 1 - i][i];
+      const RLV = board.layout[board.layout.length - 1 - i].values[i];
       if (getHasRolled(RLV, rolledNumbers)) {
         right_left_count += 1;
       }
