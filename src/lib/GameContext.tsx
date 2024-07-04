@@ -30,23 +30,15 @@ const GameContext = createContext<IGameContext>({
   resetGame: () => {},
 });
 
-function generateDefaultBoards() {
-  return [
-    {
-      id: "1",
-      layout: generateBoard(),
-    },
-    {
-      id: "2",
-      layout: generateBoard(),
-    },
-  ];
-}
+export const useGame = () => useContext(GameContext);
 
 export function GameProvider(props: { children: React.ReactNode }) {
-  const [boards, setBoards] = useState(generateDefaultBoards());
+  const [boards, setBoards] = useState<Array<Board>>([]);
+  const [requestedBoards, setRequestedBoards] = useState(0);
 
   function makeBoards(howMany: number) {
+    setRequestedBoards(howMany);
+
     const result: Array<Board> = [];
 
     for (let i = 0; i < howMany; i++) {
@@ -86,7 +78,7 @@ export function GameProvider(props: { children: React.ReactNode }) {
   }
 
   function resetGame() {
-    setBoards(generateDefaultBoards());
+    makeBoards(requestedBoards);
     setRolledNumbers(new Set());
   }
 
@@ -103,47 +95,38 @@ export function GameProvider(props: { children: React.ReactNode }) {
       {props.children}
     </GameContext.Provider>
   );
-}
 
-export const useGame = () => useContext(GameContext);
+  function generateBoard() {
+    const currentValues = new Set<number>();
 
-function generateBoard() {
-  const result: number[][] = [];
-  const currentValues = new Set<number>();
+    return [
+      buildColumn(0),
+      buildColumn(1),
+      buildColumn(2),
+      buildColumn(3),
+      buildColumn(4),
+    ];
 
-  const size = 5;
+    function buildColumn(columnIndex: number) {
+      const [min, max] = ranges[columnIndex];
 
-  for (let columnIndex = 0; columnIndex < size; columnIndex++) {
-    result.push(buildColumn(columnIndex, size, currentValues));
+      return [getValue(), getValue(), getValue(), getValue(), getValue()];
+
+      function getValue() {
+        let value;
+
+        do {
+          value = getNumInRange(min, max);
+        } while (currentValues.has(value));
+
+        currentValues.add(value);
+
+        return value;
+      }
+    }
   }
 
-  return result;
-}
-
-function buildColumn(
-  columnIndex: number,
-  size: number,
-  currentValues: Set<number>,
-) {
-  const result: number[] = [];
-
-  const [min, max] = ranges[columnIndex];
-
-  for (let j = 0; j < size; j++) {
-    let value;
-
-    do {
-      value = getNumInRange(min, max);
-    } while (currentValues.has(value));
-
-    currentValues.add(value);
-
-    result.push(value);
+  function getNumInRange(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min) + min);
   }
-
-  return result;
-}
-
-function getNumInRange(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min) + min);
 }

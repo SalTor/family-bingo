@@ -1,9 +1,15 @@
 import "./App.css";
 import cn from "classnames";
 import { IGameContext, useGame, ranges, Board } from "./lib/GameContext";
+import { useEffect } from "react";
 
 export default function App() {
   const game = useGame();
+
+  useEffect(() => {
+    game.makeBoards(2);
+    return () => {};
+  }, []);
 
   return (
     <div className="font-sans p-4">
