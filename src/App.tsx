@@ -1,6 +1,6 @@
 import "./App.css";
 import cn from "classnames";
-import { IGameContext, useGame, Board, rangeToLetter } from "./lib/GameContext";
+import { IGameContext, useGame, Board } from "./lib/GameContext";
 import { useEffect } from "react";
 
 export default function App() {
@@ -43,33 +43,22 @@ function RolledNumbers() {
     return null;
   }
 
-  function getValueLetter(value: number) {
-    const match = rangeToLetter.find(
-      ([[min, max]]) => value >= min && value <= max,
-    );
-
-    if (match) {
-      const [, letter] = match;
-      return letter;
-    }
-
-    return null;
-  }
-
   return (
     <div>
       <h2>Rolled numbers</h2>
 
       <div className="relative max-h-[200px] overflow-y-scroll overflow-x-visible">
-        {[...game.rolledNumbers].reverse().map((roll, index) => (
-          <p
-            key={roll}
-            className={cn(index === 0 && "rounded-md bg-blue-200 font-bold")}
-          >
-            {getValueLetter(roll)}
-            {roll}
-          </p>
-        ))}
+        {[...game.rolledNumbers].reverse().map((roll, index) => {
+          const displayValue = `${roll.column}${roll.value}`;
+          return (
+            <p
+              key={displayValue}
+              className={cn(index === 0 && "rounded-md bg-blue-200 font-bold")}
+            >
+              {displayValue}
+            </p>
+          );
+        })}
       </div>
     </div>
   );
@@ -96,11 +85,11 @@ function GameBoard(props: { board: Board }) {
                 {columnLetter}
               </div>
 
-              {values.map((cell, cellIndex) => {
-                const isActivated = getHasRolled(cell, game.rolledNumbers);
+              {values.map((value, cellIndex) => {
+                const isActivated = game.getHasRolled({ column, value });
                 return (
                   <div
-                    key={`cell-${cell}`}
+                    key={`cell-${value}`}
                     data-cell
                     className={cn(
                       "relative w-10 h-10 border-black border border-solid flex justify-center items-center",
@@ -110,7 +99,7 @@ function GameBoard(props: { board: Board }) {
                       },
                     )}
                   >
-                    {cell}
+                    {value}
                     {isActivated && (
                       <div className="h-[90%] w-[90%] absolute rounded-[50%] bg-red-400/50" />
                     )}
@@ -125,19 +114,13 @@ function GameBoard(props: { board: Board }) {
   );
 }
 
-function getHasRolled(
-  value: number,
-  rolledNumbers: IGameContext["rolledNumbers"],
-) {
-  return new Set(rolledNumbers).has(value);
-}
-
 type GetIsWinningBoardArgs = {
   board: Board;
   rolledNumbers: IGameContext["rolledNumbers"];
 };
 export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
-  const { board, rolledNumbers } = args;
+  const game = useGame();
+  const { board } = args;
 
   return checkColumns() || checkRows() || checkDiagonals();
 
@@ -145,10 +128,10 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
     const col_counts: Record<number, number> = {};
     const columns = board.layout;
     for (let i = 0; i < columns.length; i++) {
-      const values = columns[i].values;
+      const { column, values } = columns[i];
       for (let j = 0; j < values.length; j++) {
         const value = values[j];
-        if (getHasRolled(value, rolledNumbers)) {
+        if (game.getHasRolled({ column, value })) {
           col_counts[i] = (col_counts[i] || 0) + 1;
         } else {
           col_counts[i] = col_counts[i] || 0;
@@ -171,10 +154,10 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
 
     const columns = board.layout;
     for (let i = 0; i < columns.length; i++) {
-      const values = columns[i].values;
+      const { column, values } = columns[i];
       for (let j = 0; j < values.length; j++) {
         const value = values[j];
-        if (getHasRolled(value, rolledNumbers)) {
+        if (game.getHasRolled({ column, value })) {
           row_counts[i] = (row_counts[i] || 0) + 1;
         } else {
           row_counts[i] = row_counts[i] || 0;
@@ -196,8 +179,9 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
     let left_right_count = 0;
 
     for (let i = 0; i < board.layout.length; i++) {
-      const LRV = board.layout[i].values[i];
-      if (getHasRolled(LRV, rolledNumbers)) {
+      const { column, values } = board.layout[i];
+      const LRV = values[i];
+      if (game.getHasRolled({ column, value: LRV })) {
         left_right_count += 1;
       }
     }
@@ -213,8 +197,9 @@ export function getWinningCoordinates(args: GetIsWinningBoardArgs) {
 
     let right_left_count = 0;
     for (let i = 0; i < board.layout.length; i++) {
-      const RLV = board.layout[board.layout.length - 1 - i].values[i];
-      if (getHasRolled(RLV, rolledNumbers)) {
+      const { column, values } = board.layout[board.layout.length - 1 - i];
+      const RLV = values[i];
+      if (game.getHasRolled({ column, value: RLV })) {
         right_left_count += 1;
       }
     }

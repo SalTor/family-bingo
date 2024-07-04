@@ -17,10 +17,15 @@ export const rangeToLetter: Array<[[number, number], string]> = Object.entries(
   rangeByLetter,
 ).map(([letter, range]) => [range, letter]);
 
+export type Roll = {
+  column: string;
+  value: number;
+};
 export type IGameContext = {
   boards: Array<Board>;
-  makeBoards: (_: number) => unknown;
-  rolledNumbers: Array<number>;
+  makeBoards: (_: number) => void;
+  rolledNumbers: Array<Roll>;
+  getHasRolled: (_: Roll) => boolean;
   roll: () => void;
   resetGame: () => void;
 };
@@ -29,6 +34,7 @@ const GameContext = createContext<IGameContext>({
   boards: [],
   makeBoards: (_: number) => {},
   rolledNumbers: [],
+  getHasRolled: (_: Roll) => true,
   roll: () => {},
   resetGame: () => {},
 });
@@ -64,20 +70,28 @@ export function GameProvider(props: { children: React.ReactNode }) {
     return new Set(boards.map((b) => b.id)).has(id);
   }
 
-  const [rolledNumbers, setRolledNumbers] = useState(new Set<number>());
+  const [rolledNumbers, setRolledNumbers] = useState(new Set<Roll>());
 
   function roll() {
+    const cols = ["B", "I", "N", "G", "O"] as const;
+
+    const column = cols[getNumInRange(0, cols.length - 1)];
+
+    const [min, max] = rangeByLetter[column];
+
     let value: number;
 
     do {
-      value = getNumInRange(1, 75);
-    } while (getHasRolled(value));
+      value = getNumInRange(min, max);
+    } while (getHasRolled({ column, value }));
 
-    setRolledNumbers(new Set(rolledNumbers).add(value));
+    setRolledNumbers(new Set(rolledNumbers).add({ column, value }));
   }
 
-  function getHasRolled(num: number) {
-    return rolledNumbers.has(num);
+  function getHasRolled(roll: Roll) {
+    return Array.from(rolledNumbers).some(
+      (r) => r.column === roll.column && r.value === roll.value,
+    );
   }
 
   function resetGame() {
@@ -91,6 +105,7 @@ export function GameProvider(props: { children: React.ReactNode }) {
         boards,
         makeBoards,
         rolledNumbers: Array.from(rolledNumbers),
+        getHasRolled,
         roll,
         resetGame,
       }}
