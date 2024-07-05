@@ -16,7 +16,9 @@ export default function App() {
       <h1 className="text-3xl">Welcome to Family Bingo!</h1>
 
       <div className="flex gap-2">
-        <button onClick={() => game.roll()}>Roll a number!</button>
+        <button onClick={() => game.roll()} disabled={game.hasWinningBoard}>
+          Roll a number!
+        </button>
 
         {game.rolledNumbers.size > 0 && (
           <button onClick={() => game.resetGame()}>Reset game</button>
