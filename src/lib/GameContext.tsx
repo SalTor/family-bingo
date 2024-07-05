@@ -1,5 +1,8 @@
 import { createContext, useContext, useState } from "react";
 import { v4 } from "uuid";
+import { produce, enableMapSet } from "immer";
+
+enableMapSet();
 
 export type Board = {
   id: string;
@@ -73,15 +76,29 @@ export function GameProvider(props: { children: React.ReactNode }) {
   }
 
   const [rolledNumbers, setRolledNumbers] = useState(new Set<string>());
+  const [availableRolls, setAvailableRolls] = useState(potentialRolls);
 
   function roll() {
-    let roll: string;
+    if (availableRolls.length === 0) {
+      return null; // game has been maxed out
+    }
 
+    let rollIndex: number;
     do {
-      roll = potentialRolls[getNumInRange(0, potentialRolls.length - 1)];
-    } while (getHasRolled(roll));
+      rollIndex = getNumInRange(0, availableRolls.length - 1);
+    } while (getHasRolled(availableRolls[rollIndex]));
 
-    setRolledNumbers(new Set(rolledNumbers).add(roll));
+    setAvailableRolls(
+      produce(availableRolls, (draft) => {
+        draft.splice(rollIndex, 1);
+      }),
+    );
+
+    setRolledNumbers(
+      produce(rolledNumbers, (draft) => {
+        draft.add(availableRolls[rollIndex]);
+      }),
+    );
   }
 
   function getHasRolled(roll: string) {
